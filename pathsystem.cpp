@@ -323,14 +323,3 @@ DWORD WINAPI pathsystem::StartLocalSearch
     delete DriveInfo;
     return EXIT_SUCCESS;
 }
-
-/*
-    SLIST_HEAD(, drive_info) DriveList;
-    SLIST_INIT(&DriveList);
-
-    SLIST_HEAD(, directory_info) DirectoryList;
-    SLIST_INIT(&DirectoryList);
-
-    /*PDIRECTORY_INFO StartDirectoryInfo = new DIRECTORY_INFO;
-    PDRIVE_INFO DriveInfo = new DRIVE_INFO;
-*/
