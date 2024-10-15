@@ -30,8 +30,6 @@ STATIC int my_stoi(const char* str)
 }
 
 
-// .lnk, .exe, .dll, .sys, .msi, .bat
-//"key_setupppppppppp" "1488888888888"
 void usage_guide();
 int main(int argc, const char* argv[])
 {
