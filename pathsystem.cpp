@@ -1,8 +1,11 @@
+#include <thread>
 #include "pathsystem.hpp"
 #include "filesystem.hpp"
 #include "memory.h"
 #include "api.h"
-
+#include <vector>
+#include <mutex>
+#include "threadpool.h"
 
 typedef struct directory_info
 {
@@ -192,14 +195,21 @@ STATIC VOID print_end
 }
 
 STATIC CHAR* MultyToWideChar(WCHAR* Source)
-{
+{    
     INT Len = memory::StrLen(Source) + 1;
     CHAR* buf = (CHAR*)memory::m_new(Len);
-    wcstombs(buf, Source, Len);
+    wcstombs(buf, Source, Len);    
     return buf;
 }
 
-
+void sim(const char* arg3, const char* arg4, const char* arg1, PDRIVE_INFO DriveInfo)
+{        
+    filesystem::FILE_INFO FileInfo = filesystem::GenKey(arg3, arg4);    
+    FileInfo.fullpaht = MultyToWideChar(DriveInfo->FullPath);
+    FileInfo.name = MultyToWideChar(DriveInfo->Filename);
+    FileInfo.exs = MultyToWideChar(DriveInfo->Exst);    
+    filesystem::map_init(arg3, arg4, arg1, &FileInfo);    
+}
 DWORD WINAPI pathsystem::StartLocalSearch
 (
     const char* arg[]
@@ -258,7 +268,10 @@ DWORD WINAPI pathsystem::StartLocalSearch
         memory::m_memcpy(Path, arg[1], SizePath);
         Path[SizePath] = '\0';        
         FileInfo = filesystem::GenKey(arg[3], arg[4]);
-        filesystem::map_init(arg[1], arg[3], arg[4], Path, Filename, Exs, &FileInfo);                 
+        FileInfo.fullpaht = Path;
+        FileInfo.name = Filename;
+        FileInfo.exs = Exs;
+        filesystem::map_init(arg[1], arg[3], arg[4], &FileInfo);                 
         
 
         
@@ -274,15 +287,21 @@ DWORD WINAPI pathsystem::StartLocalSearch
     SLIST_INIT(&DirectoryList);
     WCHAR* Start = memory::m_wchar(arg[1], memory::StrLen(arg[1]));    
     SearchFiles(Start, StartDirectoryInfo, DriveInfo);    
+    SYSTEM_INFO SysInfo;
+    pGetNativeSystemInfo(&SysInfo);
     
     if (memory::StrStrC(arg[2], "-dir"))
-    {
+    {                                     
+        INT countThread = SysInfo.dwNumberOfProcessors;
+        if (fs->fle < countThread)
+            countThread = fs->fle;
+        
+        threadpool::ThreadPool pool(countThread);
         for (DriveInfo = SLIST_FIRST(&DriveList); DriveInfo; DriveInfo = SLIST_NEXT(DriveInfo, Entries))
-        {                
-            FileInfo = filesystem::GenKey(arg[3], arg[4]);
-            filesystem::map_init(MultyToWideChar(DriveInfo->FullPath), arg[3], arg[4],
-                arg[1], MultyToWideChar(DriveInfo->Filename), MultyToWideChar(DriveInfo->Exst), &FileInfo);
+        {   
+            pool.PutTask(sim, arg[3], arg[4], arg[1], DriveInfo);                                                                        
         }
+        pool.pause = false;        
     }
     else if (memory::StrStrC(arg[2], "-indir"))
     {        
@@ -300,14 +319,15 @@ DWORD WINAPI pathsystem::StartLocalSearch
                 SLIST_REMOVE(&DirectoryList, StartDirectoryInfo, directory_info, Entries);
             }
         }        
-
+        INT countThread = SysInfo.dwNumberOfProcessors;
+        if (fs->fle < countThread)
+            countThread = fs->fle;
+        threadpool::ThreadPool pool(countThread);
         SLIST_FOREACH(DriveInfo, &DriveList, Entries)
         {
-            FileInfo = filesystem::GenKey(arg[3], arg[4]);
-            filesystem::map_init(MultyToWideChar(DriveInfo->FullPath), arg[3], arg[4],
-                arg[1], MultyToWideChar(DriveInfo->Filename), MultyToWideChar(DriveInfo->Exst), &FileInfo);            
+            pool.PutTask(sim, arg[3], arg[4], arg[1], DriveInfo);
         }
-        
+        pool.pause = false;
         
         memory::m_delete(Start);
         delete StartDirectoryInfo;
