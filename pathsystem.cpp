@@ -194,6 +194,27 @@ STATIC VOID print_end
     printf_s("\nCount Files: %d\n", pathsystem::fs->fle);
 }
 
+STATIC VOID free_list
+(
+    PDIRECTORY_INFO StartDirectoryInfo,
+    PDRIVE_INFO DriveInfo
+)
+{
+    while (!SLIST_EMPTY(&DriveList))
+    {
+        DriveInfo = SLIST_FIRST(&DriveList);
+        SLIST_REMOVE_HEAD(&DriveList, Entries);
+        free(DriveInfo);
+    }
+
+    while (!SLIST_EMPTY(&DirectoryList))
+    {
+        StartDirectoryInfo = SLIST_FIRST(&DirectoryList);
+        SLIST_REMOVE_HEAD(&DirectoryList, Entries);
+        free(StartDirectoryInfo);
+    }
+}
+
 STATIC CHAR* MultyToWideChar(WCHAR* Source)
 {    
     INT Len = memory::StrLen(Source) + 1;
@@ -202,7 +223,13 @@ STATIC CHAR* MultyToWideChar(WCHAR* Source)
     return buf;
 }
 
-void sim(const char* arg3, const char* arg4, const char* arg1, PDRIVE_INFO DriveInfo)
+VOID StartFileOperation
+(
+    const char* arg3,
+    const char* arg4,
+    const char* arg1,
+    PDRIVE_INFO DriveInfo
+)
 {        
     filesystem::FILE_INFO FileInfo = filesystem::GenKey(arg3, arg4);    
     FileInfo.fullpaht = MultyToWideChar(DriveInfo->FullPath);
@@ -210,6 +237,7 @@ void sim(const char* arg3, const char* arg4, const char* arg1, PDRIVE_INFO Drive
     FileInfo.exs = MultyToWideChar(DriveInfo->Exst);    
     filesystem::map_init(arg3, arg4, arg1, &FileInfo);    
 }
+
 DWORD WINAPI pathsystem::StartLocalSearch
 (
     const char* arg[]
@@ -299,7 +327,7 @@ DWORD WINAPI pathsystem::StartLocalSearch
         threadpool::ThreadPool pool(countThread);
         for (DriveInfo = SLIST_FIRST(&DriveList); DriveInfo; DriveInfo = SLIST_NEXT(DriveInfo, Entries))
         {   
-            pool.PutTask(sim, arg[3], arg[4], arg[1], DriveInfo);                                                                        
+            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);                                                                        
         }
         pool.pause = false;        
     }
@@ -325,10 +353,10 @@ DWORD WINAPI pathsystem::StartLocalSearch
         threadpool::ThreadPool pool(countThread);
         SLIST_FOREACH(DriveInfo, &DriveList, Entries)
         {
-            pool.PutTask(sim, arg[3], arg[4], arg[1], DriveInfo);
+            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);
         }
         pool.pause = false;
-        
+        free_list(StartDirectoryInfo, DriveInfo);
         memory::m_delete(Start);
         delete StartDirectoryInfo;
         delete DriveInfo;
@@ -337,7 +365,7 @@ DWORD WINAPI pathsystem::StartLocalSearch
     }
     
     print_end(StartDirectoryInfo, DriveInfo);
-    
+    free_list(StartDirectoryInfo, DriveInfo);
     memory::m_delete(Start);    
     delete StartDirectoryInfo;
     delete DriveInfo;
