@@ -4,6 +4,7 @@
 STATIC INT g_EncryptMode = FULL_ENCRYPT;
 STATIC INT g_Percent = 20;
 STATIC BOOL g_Status = FALSE;
+STATIC INT g_Threads = -1;
 
 VOID global::SetEncryptMode(INT EncryptMode)
 {
@@ -33,4 +34,14 @@ VOID global::SetStatus(BOOL Status)
 BOOL global::GetSatus()
 {
 	return g_Status;
+}
+
+VOID global::SetCThreads(INT Count)
+{
+	g_Threads = Count;
+}
+
+INT global::GetCThreads()
+{
+	return g_Threads;
 }
