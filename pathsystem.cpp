@@ -1,11 +1,10 @@
-#include <thread>
 #include "pathsystem.hpp"
 #include "filesystem.hpp"
 #include "memory.h"
 #include "api.h"
-#include <vector>
-#include <mutex>
 #include "threadpool.h"
+#include "global_parameters.h"
+
 
 typedef struct directory_info
 {
@@ -172,17 +171,18 @@ VOID SearchFiles
     pFindClose(hSearchFile);
 }
 
+
 STATIC VOID print_end
 (
     PDIRECTORY_INFO StartDirectoryInfo,
     PDRIVE_INFO DriveInfo
 )
-{
+{    
     wprintf_s(L"\nDriveInfo\n\n");
     SLIST_FOREACH(DriveInfo, &DriveList, Entries)
     {
         printf_s("PathFile:  %ls\n", DriveInfo->Path);
-        printf_s("Filename:\t%ls\n", DriveInfo->Filename);
+        printf_s("Filename:\t%ls\n", DriveInfo->Filename);                        
     }
     
     wprintf_s(L"\nDirectories\n\n");
@@ -192,6 +192,7 @@ STATIC VOID print_end
     }
 
     printf_s("\nCount Files: %d\n", pathsystem::fs->fle);
+
 }
 
 STATIC VOID free_list
@@ -221,6 +222,25 @@ STATIC CHAR* MultyToWideChar(WCHAR* Source)
     CHAR* buf = (CHAR*)memory::m_new(Len);
     wcstombs(buf, Source, Len);    
     return buf;
+}
+
+inline INT SetCountThreads(INT files_count)
+{
+    SYSTEM_INFO SysInfo;
+    pGetNativeSystemInfo(&SysInfo);
+    INT countThread;
+    if (global::GetCThreads() == -1)
+    {
+        countThread = SysInfo.dwNumberOfProcessors;
+        if (files_count < countThread)
+            countThread = files_count;
+    }
+    else
+    {
+        countThread = global::GetCThreads();
+    }
+
+    return countThread;
 }
 
 VOID StartFileOperation
@@ -314,22 +334,16 @@ DWORD WINAPI pathsystem::StartLocalSearch
     SLIST_INIT(&DriveList);
     SLIST_INIT(&DirectoryList);
     WCHAR* Start = memory::m_wchar(arg[1], memory::StrLen(arg[1]));    
-    SearchFiles(Start, StartDirectoryInfo, DriveInfo);    
-    SYSTEM_INFO SysInfo;
-    pGetNativeSystemInfo(&SysInfo);
+    SearchFiles(Start, StartDirectoryInfo, DriveInfo);        
     
     if (memory::StrStrC(arg[2], "-dir"))
-    {                                     
-        INT countThread = SysInfo.dwNumberOfProcessors;
-        if (fs->fle < countThread)
-            countThread = fs->fle;
-        
-        threadpool::ThreadPool pool(countThread);
+    {                              
+        threadpool::ThreadPool pool(SetCountThreads(fs->fle));
         for (DriveInfo = SLIST_FIRST(&DriveList); DriveInfo; DriveInfo = SLIST_NEXT(DriveInfo, Entries))
         {   
-            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);                                                                        
+            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);
         }
-        pool.pause = false;        
+        pool.pause = false;
     }
     else if (memory::StrStrC(arg[2], "-indir"))
     {        
@@ -346,27 +360,25 @@ DWORD WINAPI pathsystem::StartLocalSearch
                 printf_s("Start mapping indir:\t%ls\n", sub_dir->Directory);
                 SLIST_REMOVE(&DirectoryList, StartDirectoryInfo, directory_info, Entries);
             }
-        }        
-        INT countThread = SysInfo.dwNumberOfProcessors;
-        if (fs->fle < countThread)
-            countThread = fs->fle;
-        threadpool::ThreadPool pool(countThread);
+        }                        
+
+        threadpool::ThreadPool pool(SetCountThreads(fs->fle));        
         SLIST_FOREACH(DriveInfo, &DriveList, Entries)
         {
-            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);
+            pool.PutTask(StartFileOperation, arg[3], arg[4], arg[1], DriveInfo);        
         }
         pool.pause = false;
         free_list(StartDirectoryInfo, DriveInfo);
         memory::m_delete(Start);
         delete StartDirectoryInfo;
         delete DriveInfo;
-        return EXIT_SUCCESS;
 
+        return EXIT_SUCCESS;
     }
     
     print_end(StartDirectoryInfo, DriveInfo);
     free_list(StartDirectoryInfo, DriveInfo);
-    memory::m_delete(Start);    
+    memory::m_delete(Start);
     delete StartDirectoryInfo;
     delete DriveInfo;
     return EXIT_SUCCESS;
