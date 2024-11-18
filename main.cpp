@@ -49,6 +49,11 @@ int main(int argc, const char* argv[])
 	
 	if (argv[5] != NULL && argc > 4)
 	{
+		if (memory::FindChar((CHAR*)&argv[5][2], '/'))
+		{			
+			global::SetCThreads(my_stoi(&argv[5][3]));
+			memory::m_memset((void*)&argv[5][2], 0, memory::StrLen(&argv[5][2]));
+		}		
 		if (memory::StrStrC(argv[5], "-f"))
 		{
 			g_EncryptMode = FULL_ENCRYPT;
@@ -121,6 +126,8 @@ int main(int argc, const char* argv[])
 	printf_s("lead time: %f\n", duration);	
 
 	memory::m_delete(s);
+	memory::m_memset((void*)argv[3], 0, memory::StrLen(argv[3]));
+	memory::m_memset((void*)argv[4], 0, memory::StrLen(argv[3]));
 	return EXIT_SUCCESS;
 }
 
