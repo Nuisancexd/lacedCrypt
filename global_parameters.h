@@ -19,4 +19,6 @@ namespace global
 	INT GetPercent();
 	VOID SetStatus(BOOL Status);
 	BOOL GetSatus();
+	VOID SetCThreads(INT CountThreads);
+	INT GetCThreads();
 }
